@@ -1,0 +1,35 @@
+Step 1 : Mysql community 
+https://dev.mysql.com/downloads/file/?id=501541
+Install the community version .
+
+Username : root
+Port number 3306
+Password : Mahalakshmi1!
+
+Create database , Import data 
+Run 
+verify data by simple query 
+
+
+Step 2 : Middle ware 
+
+installed python 
+
+installed flask by pip install flask in command promt 
+
+installed graphene by pip install graphene in command promt 
+
+install flask graphene by pip install flask graphene in commond promt.
+
+Step 3 :
+
+To set execute the file on command promt 
+
+cd path 
+python app.py 
+copy the link open on chrome
+
+
+
+
+

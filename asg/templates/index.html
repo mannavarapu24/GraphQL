@@ -1,0 +1,234 @@
+<html>
+    <title>QBE Project</title>
+    <head>
+        <style>
+            section{
+                border-top: 3px solid black;
+                min-height: 100px;
+            }
+
+            section .header{
+                color: darkblue;
+                font-weight: 400;
+            }
+        </style>
+    </head>
+    <body>
+        <section id="QBE">
+            <h1 class="header">QBE</h1>
+            <label>User</label>
+            <input type="text" id="DbUser" >
+            <label>Password</label>
+            <input type="text" id="DbPass">
+            <label>Catalog</label>
+            <input type="text" id="DbCatalog" >
+            <button type="button" id="login">Go</button>
+        </section>
+        <section id="Tables">
+            <h1 class="header">Database Table</h1>
+            <div id="dvTableSection">
+                <div id="dvAppendTable"></div>
+                <div id="dvButton" style="display: none;">
+                <input id="btnGetSkeletons" type="button" value="Get Skeletons" title="Get Skeletons"/>
+                <input id="btnResetSkeletons" type="button" value="Reset Skeletons" title="Reset Skeletons"/>
+                </div>
+
+            </div>
+        </section>
+        <section id="Interface">
+            <h1 class="header">QBE Interface</h1>
+            <div id="dvInterface"></div>
+        </section>
+        <section id="Results">
+            <h1 class="header">QBE Results</h1>
+            <label>Sql Query</label></br>
+            <label id="lblSqlQuery"></label>
+            <div id="dvResults">
+               
+            </div>
+        </section>
+    </body>
+    <script>
+        document.getElementById("login").onclick= () => {
+            let gqlObj = {
+                query: `{ tablenames(userid:"${document.getElementById("DbUser").value}", pw:"${document.getElementById("DbPass").value}", dbname:"${document.getElementById("DbCatalog").value}") { 
+                     tblName  
+                    }}`
+            };
+            
+            fetch('http://127.0.0.1:5000/graphql?',
+            {
+                method: 'POST',
+                body : JSON.stringify(gqlObj),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data.data.tablenames);
+             if( data.data.tablenames!=null)
+             {
+                var finalhtml='';
+              
+                data.data.tablenames.forEach(element => {
+                            var html=' <select name="ddl'+element.tblName+'" id="ddl'+element.tblName+'">';
+                        html+='<option value="0">0</option>';
+                        html+='<option value="1">1</option>';
+                        html+='<option value="2">2</option>';
+                        html+=' <option value="3">3</option>';
+                        html+='</select>';
+                        finalhtml+= '<div><lable>' + element.tblName.toUpperCase() + '</lable>' + html +'</div>';
+                    });
+                    
+                    document.getElementById("dvButton").style.display="block";
+                    
+                document.getElementById("dvAppendTable").innerHTML=finalhtml;
+            }
+        else{
+            alert("Please correct the cred.");
+        }
+            });
+        
+        };
+
+        document.getElementById("btnGetSkeletons").onclick = () => {
+            
+            let gqlObj = {
+                query: `{ tablestructure(userid:"${document.getElementById("DbUser").value}", pw:"${document.getElementById("DbPass").value}", dbname:"${document.getElementById("DbCatalog").value}",
+                          tblnamelist:["building", "media","room","roommedia"],
+                          tblCount:[${document.getElementById("ddlbuilding").value},${document.getElementById("ddlmedia").value},${document.getElementById("ddlroom").value},${document.getElementById("ddlroommedia").value}]){
+                          colNames
+                }}`
+            };
+            fetch('http://127.0.0.1:5000/graphql?',
+            {
+                method: 'POST',
+                body : JSON.stringify(gqlObj),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(resp => {
+                console.log(resp);
+             
+                var finalhtml='';
+                resp.data.tablestructure.forEach((table, index) => {
+                    var html=`<table style="border:1px solid" data-table-name=${table.colNames[0]}_${index}>`;
+                    var headerRow='<tr>';
+                    var commandRow='<tr>';
+                    table.colNames.forEach(colm => {
+                        headerRow+=`<td style="border:1px solid">${colm}</td>`;
+                        commandRow+=`<td><input type="text" data-col-name="${colm}"/></td>`;
+                    });
+                    headerRow+='</tr>';
+                    commandRow+='</tr>';
+                    html+=headerRow+commandRow+'</table></br>';
+                    finalhtml+=html;
+                });
+                    
+               
+                 document.getElementById("dvInterface").innerHTML=finalhtml;
+                 document.getElementById("dvInterface").innerHTML+= "Condition Box: <input type='text' id='condition_box' />";
+                 document.getElementById("dvInterface").innerHTML+= "<button id='RunQuery' onclick='runquery()'>Run Query</button>";
+            });
+        };
+        document.getElementById("btnResetSkeletons").onclick= () => {
+            document.getElementById("ddlbuilding").value="0";
+            document.getElementById("ddlmedia").value="0";
+            document.getElementById("ddlroom").value="0";
+            document.getElementById("ddlroommedia").value="0";
+            document.getElementById("dvInterface").innerHTML="";
+        };
+        function runquery() {
+            var tableContainer =  document.getElementById("dvInterface"); // get tables container element
+            var tables = tableContainer.getElementsByTagName('table'); // read all tables from container
+            // var columnsName = [];// column name array
+            // var columnsValue = []; // column value array
+            var columnsName = "";// column name array
+            var columnsValue = "";
+            for(var index =0; index< tables.length; index++){ // loop over tables
+                var table = tables[index]; //get table
+                var inputs = table.getElementsByTagName('input'); // read texbox elements
+                var cols="\"[";
+                var colsValue="\"[";
+                for(var tbxIndex =0; tbxIndex < inputs.length; tbxIndex++){ // loop over textboxes
+                    var tbx = inputs[tbxIndex]; // get textbox
+                    var colname = tbx.getAttribute('data-col-name');
+                    if(tbxIndex!=(inputs.length-1))
+                    {
+                                        cols+="'"+tbx.getAttribute('data-col-name')+"',"; 
+                                        colsValue+="'"+tbx.value+"',";  
+                    }
+                    else{
+                                        cols+="'"+tbx.getAttribute('data-col-name')+"'"; 
+                                        colsValue+="'"+tbx.value+"'"; 
+                    }               
+                }
+                if(index!=(tables.length-1))
+                    {
+                cols+="]\",";
+                colsValue+="]\",";
+                    }
+                    else{
+                        cols+="]\"";
+                colsValue+="]\"";
+                    }
+               // columnsName.push(cols);
+                //columnsValue.push(colsValue);
+                columnsName+=cols;
+                columnsValue+=colsValue;
+            }
+            let gqlObj = {
+                query: `{ qbe(userid:"${document.getElementById("DbUser").value}", pw:"${document.getElementById("DbPass").value}", dbname:"${document.getElementById("DbCatalog").value}",
+                           columnNames:[${columnsName}],
+                           qbeCmds:[${columnsValue}],
+                           conditionBox:"${document.getElementById("condition_box").value}"){
+                            sql,
+                            columnHeader,
+                            queryData {
+                            onerow
+                            }
+                }}`
+            };
+            fetch('http://127.0.0.1:5000/graphql?',
+            {
+                method: 'POST',
+                body : JSON.stringify(gqlObj),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(resp => {
+                console.log(resp);
+                if(resp.data.qbe!=null)
+                {
+                document.getElementById("lblSqlQuery").textContent=resp.data.qbe.sql;
+                var finalhtml=`<table style="border:1px solid">`;
+                var Row='<tr>';
+                resp.data.qbe.columnHeader.forEach(colm => {                    
+                    Row+='<th style="border:1px solid">'+colm+'</th>';                 
+                });
+                Row+="</tr><tr>";
+                resp.data.qbe.queryData.forEach(data => {                    
+                    data.onerow.forEach(colms => {                    
+                    Row+='<td style="border:1px solid">'+colms+'</td>';                 
+                });      
+                Row+="</tr><tr>";     
+                });
+                finalhtml+=Row+'</table>';
+               
+                 document.getElementById("dvResults").innerHTML=finalhtml;
+            }
+            else{
+                document.getElementById("dvResults").innerHTML='';
+                document.getElementById("lblSqlQuery").textContent='';
+                alert('Please correct the query.');
+
+            }
+            });
+        };
+    </script>
+</html>
